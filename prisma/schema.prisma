@@ -1,0 +1,318 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+enum AgentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ConversationStatus {
+  STARTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum Channel {
+  PHONE
+  WEB_VOICE
+  WEB_TEXT
+}
+
+enum AppointmentStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum IntegrationType {
+  ELEVENLABS
+  TWILIO
+  GOOGLE_CALENDAR
+  STRIPE
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String?
+  passwordHash String?
+  verifiedAt   DateTime?
+  memberships  Membership[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Organization {
+  id            String          @id @default(cuid())
+  name          String
+  slug          String          @unique
+  timezone      String          @default("America/New_York")
+  memberships   Membership[]
+  locations     Location[]
+  agents        Agent[]
+  knowledge     KnowledgeSource[]
+  conversations Conversation[]
+  contacts      Contact[]
+  appointments  Appointment[]
+  inboxTasks    InboxTask[]
+  integrations  Integration[]
+  webhookEvents WebhookEvent[]
+  usageEvents   UsageEvent[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           Role
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Location {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  timezone       String
+  phone          String?
+  addressJson    Json?
+  hoursJson      Json?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  @@index([organizationId, createdAt])
+}
+
+model Agent {
+  id               String         @id @default(cuid())
+  organizationId   String
+  name             String
+  status           AgentStatus    @default(DRAFT)
+  draftConfig      Json
+  activeVersionId  String?        @unique
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions         AgentVersion[] @relation("AgentVersions")
+  activeVersion    AgentVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id])
+  conversations    Conversation[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  @@index([organizationId, createdAt])
+}
+
+model AgentVersion {
+  id            String         @id @default(cuid())
+  agentId       String
+  version       Int
+  config        Json
+  publishedById String
+  publishedAt   DateTime       @default(now())
+  agent         Agent          @relation("AgentVersions", fields: [agentId], references: [id], onDelete: Cascade)
+  activeFor     Agent?         @relation("ActiveVersion")
+  conversations Conversation[]
+  @@unique([agentId, version])
+}
+
+model KnowledgeSource {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  type           String
+  status         String       @default("queued")
+  sourceUrl      String?
+  checksum       String?
+  error          String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  @@index([organizationId, createdAt])
+}
+
+model Conversation {
+  id                     String             @id @default(cuid())
+  organizationId         String
+  agentId                 String
+  agentVersionId          String
+  provider                String
+  providerConversationId String
+  channel                 Channel
+  status                  ConversationStatus @default(STARTED)
+  outcome                 String?
+  summary                 String?
+  durationSeconds         Int?
+  estimatedCost           Decimal?           @db.Decimal(12, 6)
+  organization            Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent                   Agent              @relation(fields: [agentId], references: [id])
+  agentVersion            AgentVersion       @relation(fields: [agentVersionId], references: [id])
+  messages                ConversationMessage[]
+  toolExecutions          ToolExecution[]
+  inboxTasks              InboxTask[]
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  @@unique([provider, providerConversationId])
+  @@index([organizationId, createdAt])
+}
+
+model ConversationMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  sequence       Int
+  role           String
+  content        String
+  timestamp      DateTime
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@unique([conversationId, sequence])
+}
+
+model ToolExecution {
+  id              String       @id @default(cuid())
+  organizationId  String
+  conversationId  String
+  toolName        String
+  requestSafeJson Json
+  responseSafeJson Json?
+  status          String
+  latencyMs       Int?
+  idempotencyKey  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  @@unique([organizationId, idempotencyKey])
+  @@index([conversationId, createdAt])
+}
+
+model Contact {
+  id              String        @id @default(cuid())
+  organizationId  String
+  normalizedPhone String?
+  email           String?
+  name            String?
+  leadScore       Int?
+  consentJson     Json?
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  inboxTasks      InboxTask[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@index([organizationId, createdAt])
+  @@index([organizationId, normalizedPhone])
+  @@index([organizationId, email])
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  organizationId  String
+  contactId       String
+  locationId      String
+  externalEventId String?
+  startAt         DateTime
+  endAt           DateTime
+  timezone        String
+  status          AppointmentStatus @default(CONFIRMED)
+  source          String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact         Contact           @relation(fields: [contactId], references: [id])
+  location        Location          @relation(fields: [locationId], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  @@index([organizationId, createdAt])
+}
+
+model InboxTask {
+  id             String       @id @default(cuid())
+  organizationId String
+  conversationId String?
+  contactId      String?
+  type           String
+  priority       String
+  dueAt          DateTime?
+  status         TaskStatus   @default(OPEN)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  contact        Contact?     @relation(fields: [contactId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  @@index([organizationId, createdAt])
+}
+
+model Integration {
+  id                     String          @id @default(cuid())
+  organizationId         String
+  type                   IntegrationType
+  encryptedCredentialRef String?
+  configJson             Json?
+  status                 String
+  lastCheckedAt          DateTime?
+  organization           Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  @@unique([organizationId, type])
+}
+
+model WebhookEvent {
+  id              String       @id @default(cuid())
+  provider        String
+  providerEventId String
+  organizationId  String?
+  type            String
+  status          String       @default("received")
+  attemptCount    Int          @default(0)
+  receivedAt      DateTime     @default(now())
+  processedAt     DateTime?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  @@unique([provider, providerEventId])
+}
+
+model UsageEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  conversationId String?
+  metric         String
+  quantity       Decimal      @db.Decimal(14, 4)
+  unitCost       Decimal?     @db.Decimal(12, 6)
+  occurredAt     DateTime
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  @@index([organizationId, occurredAt])
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  actorId        String?
+  action         String
+  targetType     String
+  targetId       String?
+  result         String
+  metadataSafeJson Json?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  @@index([organizationId, createdAt])
+}
