@@ -60,29 +60,117 @@ model User {
   passwordHash String?
   verifiedAt   DateTime?
   memberships  Membership[]
+  sessions     Session[]
+  authTokens   AuthToken[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
 
+model Session {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  tokenHash      String       @unique
+  csrfHash       String
+  expiresAt      DateTime
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([expiresAt])
+}
+
+model AuthToken {
+  id         String    @id @default(cuid())
+  userId     String
+  purpose    String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
 model Organization {
-  id            String          @id @default(cuid())
-  name          String
-  slug          String          @unique
-  timezone      String          @default("America/New_York")
-  memberships   Membership[]
-  locations     Location[]
-  agents        Agent[]
-  knowledge     KnowledgeSource[]
-  conversations Conversation[]
-  contacts      Contact[]
-  appointments  Appointment[]
-  inboxTasks    InboxTask[]
-  integrations  Integration[]
-  webhookEvents WebhookEvent[]
-  usageEvents   UsageEvent[]
-  auditLogs     AuditLog[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id                      String                   @id @default(cuid())
+  name                    String
+  slug                    String                   @unique
+  timezone                String                   @default("America/New_York")
+  legalName               String?
+  category                String?
+  locale                  String                   @default("en-US")
+  contactEmail            String?
+  website                 String?
+  serviceAreaJson         Json?
+  fallbackContactJson     Json?
+  onboardingStep          Int                      @default(1)
+  onboardingCompletedAt   DateTime?
+  memberships             Membership[]
+  invitations             Invitation[]
+  sessions                Session[]
+  locations               Location[]
+  agents                  Agent[]
+  knowledge               KnowledgeSource[]
+  knowledgeDocuments      KnowledgeDocument[]
+  knowledgeProcessingJobs KnowledgeProcessingJob[]
+  conversations           Conversation[]
+  contacts                Contact[]
+  appointments            Appointment[]
+  calendarReconciliations CalendarReconciliation[]
+  inboxTasks              InboxTask[]
+  integrations            Integration[]
+  phoneNumbers            PhoneNumber[]
+  webhookEvents           WebhookEvent[]
+  usageEvents             UsageEvent[]
+  auditLogs               AuditLog[]
+  subscription            Subscription?
+  usageAggregates         UsageAggregate[]
+  providerHealth          ProviderHealth[]
+  externalReferences      ExternalReference[]
+  contactMerges           ContactMerge[]
+  notificationDeliveries  NotificationDelivery[]
+  outboundWebhooks        OutboundWebhook[]
+  webhookDeliveries       WebhookDelivery[]
+  jobAttempts             JobAttempt[]
+  services                Service[]
+  faqs                    Faq[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+}
+
+model Service {
+  id               String       @id @default(cuid())
+  organizationId   String
+  name             String
+  description      String?
+  durationMinutes  Int          @default(60)
+  bufferMinutes    Int          @default(0)
+  priceLabel       String?
+  bookingRulesJson Json?
+  active           Boolean      @default(true)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
+model Faq {
+  id             String       @id @default(cuid())
+  organizationId String
+  question       String
+  answer         String
+  active         Boolean      @default(true)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, createdAt])
 }
 
 model Membership {
@@ -93,38 +181,62 @@ model Membership {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
+
   @@unique([organizationId, userId])
   @@index([userId])
 }
 
-model Location {
+model Invitation {
   id             String       @id @default(cuid())
+  organizationId String
+  email          String
+  role           Role
+  tokenHash      String       @unique
+  invitedById    String
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([email])
+}
+
+model Location {
+  id             String        @id @default(cuid())
   organizationId String
   name           String
   timezone       String
   phone          String?
   addressJson    Json?
   hoursJson      Json?
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  closuresJson   Json?
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   appointments   Appointment[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  phoneNumbers   PhoneNumber[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
   @@index([organizationId, createdAt])
 }
 
 model Agent {
-  id               String         @id @default(cuid())
-  organizationId   String
-  name             String
-  status           AgentStatus    @default(DRAFT)
-  draftConfig      Json
-  activeVersionId  String?        @unique
-  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  versions         AgentVersion[] @relation("AgentVersions")
-  activeVersion    AgentVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id])
-  conversations    Conversation[]
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                   String                     @id @default(cuid())
+  organizationId       String
+  name                 String
+  status               AgentStatus                @default(DRAFT)
+  draftConfig          Json
+  activeVersionId      String?                    @unique
+  organization         Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions             AgentVersion[]             @relation("AgentVersions")
+  activeVersion        AgentVersion?              @relation("ActiveVersion", fields: [activeVersionId], references: [id])
+  conversations        Conversation[]
+  knowledgeAttachments AgentKnowledgeAttachment[]
+  phoneNumbers         PhoneNumber[]
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
   @@index([organizationId, createdAt])
 }
 
@@ -138,45 +250,112 @@ model AgentVersion {
   agent         Agent          @relation("AgentVersions", fields: [agentId], references: [id], onDelete: Cascade)
   activeFor     Agent?         @relation("ActiveVersion")
   conversations Conversation[]
+
   @@unique([agentId, version])
 }
 
 model KnowledgeSource {
-  id             String       @id @default(cuid())
+  id             String                     @id @default(cuid())
   organizationId String
   name           String
   type           String
-  status         String       @default("queued")
+  status         String                     @default("queued")
   sourceUrl      String?
   checksum       String?
   error          String?
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  contentText    String?
+  storageKey     String?
+  mimeType       String?
+  sizeBytes      Int?
+  ownerId        String?
+  archivedAt     DateTime?
+  attachments    AgentKnowledgeAttachment[]
+  documents      KnowledgeDocument[]
+  processingJobs KnowledgeProcessingJob[]
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
+model KnowledgeDocument {
+  id                String          @id @default(cuid())
+  organizationId    String
+  knowledgeSourceId String
+  version           Int
+  status            String          @default("ready")
+  contentText       String
+  checksum          String
+  indexedAt         DateTime?
+  deletedAt         DateTime?
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  knowledgeSource   KnowledgeSource @relation(fields: [knowledgeSourceId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+
+  @@unique([knowledgeSourceId, version])
+  @@index([organizationId, createdAt])
+}
+
+model KnowledgeProcessingJob {
+  id                String          @id @default(cuid())
+  organizationId    String
+  knowledgeSourceId String
+  operation         String
+  attempt           Int
+  status            String          @default("processing")
+  errorCode         String?
+  startedAt         DateTime        @default(now())
+  completedAt       DateTime?
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  knowledgeSource   KnowledgeSource @relation(fields: [knowledgeSourceId], references: [id], onDelete: Cascade)
+
+  @@unique([knowledgeSourceId, operation, attempt])
+  @@index([organizationId, startedAt])
+}
+
+model AgentKnowledgeAttachment {
+  id                String          @id @default(cuid())
+  organizationId    String
+  agentId           String
+  knowledgeSourceId String
+  agent             Agent           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  knowledgeSource   KnowledgeSource @relation(fields: [knowledgeSourceId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+
+  @@unique([agentId, knowledgeSourceId])
   @@index([organizationId, createdAt])
 }
 
 model Conversation {
-  id                     String             @id @default(cuid())
+  id                     String                @id @default(cuid())
   organizationId         String
-  agentId                 String
-  agentVersionId          String
-  provider                String
+  agentId                String
+  agentVersionId         String
+  provider               String
   providerConversationId String
-  channel                 Channel
-  status                  ConversationStatus @default(STARTED)
-  outcome                 String?
-  summary                 String?
-  durationSeconds         Int?
-  estimatedCost           Decimal?           @db.Decimal(12, 6)
-  organization            Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  agent                   Agent              @relation(fields: [agentId], references: [id])
-  agentVersion            AgentVersion       @relation(fields: [agentVersionId], references: [id])
-  messages                ConversationMessage[]
-  toolExecutions          ToolExecution[]
-  inboxTasks              InboxTask[]
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  channel                Channel
+  status                 ConversationStatus    @default(STARTED)
+  outcome                String?
+  summary                String?
+  durationSeconds        Int?
+  estimatedCost          Decimal?              @db.Decimal(12, 6)
+  isTest                 Boolean               @default(false)
+  extractedDataJson      Json?
+  contactId              String?
+  organization           Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent                  Agent                 @relation(fields: [agentId], references: [id])
+  agentVersion           AgentVersion          @relation(fields: [agentVersionId], references: [id])
+  messages               ConversationMessage[]
+  toolExecutions         ToolExecution[]
+  inboxTasks             InboxTask[]
+  contact                Contact?              @relation(fields: [contactId], references: [id])
+  notes                  Note[]
+  feedback               Feedback[]
+  transferAttempts       TransferAttempt[]
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+
   @@unique([provider, providerConversationId])
   @@index([organizationId, createdAt])
 }
@@ -189,104 +368,344 @@ model ConversationMessage {
   content        String
   timestamp      DateTime
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
   @@unique([conversationId, sequence])
 }
 
 model ToolExecution {
-  id              String       @id @default(cuid())
-  organizationId  String
-  conversationId  String
-  toolName        String
-  requestSafeJson Json
+  id               String        @id @default(cuid())
+  organizationId   String
+  conversationId   String
+  toolName         String
+  requestSafeJson  Json
   responseSafeJson Json?
-  status          String
-  latencyMs       Int?
-  idempotencyKey  String
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  createdAt       DateTime     @default(now())
+  status           String
+  latencyMs        Int?
+  idempotencyKey   String
+  conversation     Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  appointments     Appointment[]
+  createdAt        DateTime      @default(now())
+
   @@unique([organizationId, idempotencyKey])
   @@index([conversationId, createdAt])
 }
 
 model Contact {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   organizationId  String
   normalizedPhone String?
   email           String?
   name            String?
   leadScore       Int?
   consentJson     Json?
-  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   appointments    Appointment[]
   inboxTasks      InboxTask[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  conversations   Conversation[]
+  notes           Note[]
+  mergesAsSource  ContactMerge[] @relation("MergeSource")
+  mergesAsTarget  ContactMerge[] @relation("MergeTarget")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
   @@index([organizationId, createdAt])
   @@index([organizationId, normalizedPhone])
   @@index([organizationId, email])
 }
 
+model ContactMerge {
+  id              String       @id @default(cuid())
+  organizationId  String
+  sourceContactId String
+  targetContactId String
+  mergedById      String
+  reason          String?
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sourceContact   Contact      @relation("MergeSource", fields: [sourceContactId], references: [id])
+  targetContact   Contact      @relation("MergeTarget", fields: [targetContactId], references: [id])
+  createdAt       DateTime     @default(now())
+
+  @@unique([organizationId, sourceContactId])
+  @@index([organizationId, createdAt])
+}
+
 model Appointment {
-  id              String            @id @default(cuid())
+  id              String                   @id @default(cuid())
   organizationId  String
   contactId       String
   locationId      String
   externalEventId String?
+  conversationId  String?
+  toolExecutionId String?
+  syncStatus      String                   @default("synced")
   startAt         DateTime
   endAt           DateTime
   timezone        String
-  status          AppointmentStatus @default(CONFIRMED)
+  status          AppointmentStatus        @default(CONFIRMED)
   source          String
-  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contact         Contact           @relation(fields: [contactId], references: [id])
-  location        Location          @relation(fields: [locationId], references: [id])
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact         Contact                  @relation(fields: [contactId], references: [id])
+  location        Location                 @relation(fields: [locationId], references: [id])
+  toolExecution   ToolExecution?           @relation(fields: [toolExecutionId], references: [id])
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  reconciliations CalendarReconciliation[]
+
+  @@unique([organizationId, externalEventId])
   @@index([organizationId, createdAt])
 }
 
+model CalendarReconciliation {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  appointmentId      String
+  action             String
+  status             String
+  providerEventId    String?
+  providerOccurredAt DateTime?
+  detailsSafeJson    Json?
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointment        Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  createdAt          DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([appointmentId, createdAt])
+}
+
 model InboxTask {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String
   conversationId String?
   contactId      String?
   type           String
   priority       String
   dueAt          DateTime?
-  status         TaskStatus   @default(OPEN)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status         TaskStatus    @default(OPEN)
+  assignedToId   String?
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   conversation   Conversation? @relation(fields: [conversationId], references: [id])
-  contact        Contact?     @relation(fields: [contactId], references: [id])
+  contact        Contact?      @relation(fields: [contactId], references: [id])
+  notes          Note[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
+model Note {
+  id             String        @id @default(cuid())
+  organizationId String
+  authorId       String
+  body           String
+  conversationId String?
+  contactId      String?
+  inboxTaskId    String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  contact        Contact?      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  inboxTask      InboxTask?    @relation(fields: [inboxTaskId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+model Feedback {
+  id             String       @id @default(cuid())
+  organizationId String
+  conversationId String
+  actorId        String
+  rating         Int
+  correction     String?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
+model TransferAttempt {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  conversationId     String
+  destinationMasked  String
+  trigger            String
+  status             String
+  providerTransferId String?
+  idempotencyKey     String
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt          DateTime     @default(now())
+
+  @@unique([organizationId, idempotencyKey])
   @@index([organizationId, createdAt])
 }
 
 model Integration {
-  id                     String          @id @default(cuid())
+  id                     String                  @id @default(cuid())
   organizationId         String
   type                   IntegrationType
   encryptedCredentialRef String?
   configJson             Json?
   status                 String
   lastCheckedAt          DateTime?
-  organization           Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  credentials            IntegrationCredential[]
+
   @@unique([organizationId, type])
 }
 
+model IntegrationCredential {
+  id             String      @id @default(cuid())
+  integrationId  String
+  organizationId String
+  version        Int
+  keyVersion     String
+  ciphertext     String
+  iv             String
+  authTag        String
+  active         Boolean     @default(true)
+  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime    @default(now())
+  rotatedAt      DateTime?
+
+  @@unique([integrationId, version])
+  @@index([organizationId, active])
+}
+
+model ProviderHealth {
+  id             String       @id @default(cuid())
+  organizationId String
+  provider       String
+  status         String
+  latencyMs      Int?
+  errorCode      String?
+  checkedAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, checkedAt])
+  @@index([provider, checkedAt])
+}
+
+model ExternalReference {
+  id               String       @id @default(cuid())
+  organizationId   String
+  provider         String
+  resourceType     String
+  resourceId       String
+  externalId       String
+  metadataSafeJson Json?
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([organizationId, provider, resourceType, externalId])
+  @@index([organizationId, resourceType, resourceId])
+}
+
+model NotificationDelivery {
+  id                String       @id @default(cuid())
+  organizationId    String
+  channel           String
+  template          String
+  destinationMasked String
+  status            String       @default("queued")
+  idempotencyKey    String
+  providerMessageId String?
+  attemptCount      Int          @default(0)
+  errorCode         String?
+  sentAt            DateTime?
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+}
+
+model OutboundWebhook {
+  id             String            @id @default(cuid())
+  organizationId String
+  url            String
+  eventTypesJson Json
+  secretRef      String
+  active         Boolean           @default(true)
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveries     WebhookDelivery[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
+model WebhookDelivery {
+  id                String          @id @default(cuid())
+  organizationId    String
+  outboundWebhookId String
+  eventId           String
+  eventType         String
+  payloadSafeJson   Json
+  status            String          @default("queued")
+  responseStatus    Int?
+  attemptCount      Int             @default(0)
+  nextAttemptAt     DateTime?
+  deliveredAt       DateTime?
+  outboundWebhook   OutboundWebhook @relation(fields: [outboundWebhookId], references: [id], onDelete: Cascade)
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+
+  @@unique([outboundWebhookId, eventId])
+  @@index([organizationId, createdAt])
+  @@index([status, nextAttemptAt])
+}
+
+model JobAttempt {
+  id               String        @id @default(cuid())
+  organizationId   String?
+  queue            String
+  jobId            String
+  attempt          Int
+  status           String
+  errorCode        String?
+  durationMs       Int?
+  metadataSafeJson Json?
+  organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt        DateTime      @default(now())
+
+  @@unique([queue, jobId, attempt])
+  @@index([organizationId, createdAt])
+  @@index([queue, createdAt])
+}
+
+model PhoneNumber {
+  id               String       @id @default(cuid())
+  organizationId   String
+  locationId       String
+  agentId          String
+  e164             String       @unique
+  providerNumberId String       @unique
+  status           String       @default("active")
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location         Location     @relation(fields: [locationId], references: [id])
+  agent            Agent        @relation(fields: [agentId], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
 model WebhookEvent {
-  id              String       @id @default(cuid())
-  provider        String
-  providerEventId String
-  organizationId  String?
-  type            String
-  status          String       @default("received")
-  attemptCount    Int          @default(0)
-  receivedAt      DateTime     @default(now())
-  processedAt     DateTime?
-  organization    Organization? @relation(fields: [organizationId], references: [id])
+  id                 String        @id @default(cuid())
+  provider           String
+  providerEventId    String
+  organizationId     String?
+  type               String
+  status             String        @default("received")
+  attemptCount       Int           @default(0)
+  receivedAt         DateTime      @default(now())
+  processedAt        DateTime?
+  providerOccurredAt DateTime?
+  payloadSafeJson    Json?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
+
   @@unique([provider, providerEventId])
 }
 
@@ -298,21 +717,53 @@ model UsageEvent {
   quantity       Decimal      @db.Decimal(14, 4)
   unitCost       Decimal?     @db.Decimal(12, 6)
   occurredAt     DateTime
+  idempotencyKey String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, idempotencyKey])
   @@index([organizationId, occurredAt])
 }
 
-model AuditLog {
+model Subscription {
+  id                     String       @id @default(cuid())
+  organizationId         String       @unique
+  planCode               String
+  providerCustomerId     String?      @unique
+  providerSubscriptionId String?      @unique
+  status                 String
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean      @default(false)
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+}
+
+model UsageAggregate {
   id             String       @id @default(cuid())
   organizationId String
-  actorId        String?
-  action         String
-  targetType     String
-  targetId       String?
-  result         String
-  metadataSafeJson Json?
+  periodStart    DateTime
+  periodEnd      DateTime
+  metric         String
+  quantity       Decimal      @db.Decimal(14, 4)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, periodStart, periodEnd, metric])
+  @@index([organizationId, periodStart])
+}
+
+model AuditLog {
+  id               String       @id @default(cuid())
+  organizationId   String
+  actorId          String?
+  action           String
+  targetType       String
+  targetId         String?
+  result           String
+  metadataSafeJson Json?
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+
   @@index([organizationId, createdAt])
 }

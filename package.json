@@ -8,14 +8,20 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests --max-warnings=0",
+    "format:check": "prettier --check .",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "worker": "tsx watch src/worker.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run tests/database.integration.test.ts tests/queue.integration.test.ts",
+    "secret:scan": "node scripts/secret-scan.mjs",
+    "openapi:check": "node scripts/openapi.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.12.0",
+    "argon2": "^0.41.1",
     "bullmq": "^5.34.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -23,19 +29,26 @@
     "express": "^5.0.1",
     "helmet": "^8.0.0",
     "ioredis": "^5.4.2",
+    "jose": "^5.9.6",
     "pino": "^9.6.0",
     "pino-http": "^10.3.0",
     "stripe": "^17.5.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",
+    "@types/supertest": "^7.2.1",
+    "eslint": "^9.39.1",
+    "prettier": "^3.9.6",
     "prisma": "6.12.0",
+    "supertest": "^7.2.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "typescript-eslint": "^8.46.1",
+    "vitest": "^3.2.6"
   }
 }

@@ -23,4 +23,3 @@ The API listens on `http://localhost:4000` by default. Current auth headers are 
 ## Safety status
 
 The application fails closed for calendar actions and provider webhooks until credentials, OAuth, signature verification, and idempotent processors are implemented. It never reports a booking as successful without a provider-confirmed action.
-
