@@ -24,6 +24,7 @@ import { prisma } from "./lib/prisma.js";
 import { redis } from "./lib/redis.js";
 import { requestMetrics } from "./middleware/request-metrics.js";
 
+// Create the Express application
 export const app = express();
 app.disable("x-powered-by");
 app.use(requestContext);
