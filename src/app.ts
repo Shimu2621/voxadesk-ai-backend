@@ -34,6 +34,8 @@ app.use(requestMetrics);
 app.use(pinoHttp({ logger }));
 app.use(helmet());
 app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
+
+// Public webhook and telephony routes
 app.use(
   "/webhooks",
   rateLimit({ name: "webhook", limit: 600, windowSeconds: 60 }),
@@ -44,12 +46,18 @@ app.use(
   rateLimit({ name: "telephony", limit: 300, windowSeconds: 60 }),
   telephonyRouter,
 );
+
+// Request body and cookie parsers
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// Health-check routes
 app.get("/health", (_req, res) =>
   res.json({ status: "ok", service: "voxadesk-ai-backend" }),
 );
 app.get("/health/live", (_req, res) => res.json({ status: "ok" }));
+
+// Check database and Redis availability
 app.get("/health/ready", async (_req, res) => {
   try {
     await Promise.all([prisma.$queryRaw`SELECT 1`, redis.ping()]);
@@ -58,18 +66,25 @@ app.get("/health/ready", async (_req, res) => {
     res.status(503).json({ status: "not_ready" });
   }
 });
+
+// Authentication routes
 app.use(
   "/api/v1/auth",
   rateLimit({ name: "auth", limit: 30, windowSeconds: 60 }),
   authRouter,
 );
+
+// Protect the following API routes with CSRF validation
 app.use("/api/v1", requireCsrf);
+
+// Application routes
 app.use("/api/v1", workspaceRouter);
 app.use("/api/v1/billing", billingRouter);
 app.use("/api/v1/analytics", analyticsRouter);
 app.use("/api/v1/integrations", integrationsRouter);
 app.use("/api/v1/operations", operationsRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
+
 app.use(
   "/api/v1/agents",
   rateLimit({ name: "agents", limit: 120, windowSeconds: 60 }),
@@ -80,7 +95,11 @@ app.use(
   rateLimit({ name: "tools", limit: 180, windowSeconds: 60 }),
   toolsRouter,
 );
+
+// Handle unknown routes
 app.use((_req, res) =>
   res.status(404).json({ code: "NOT_FOUND", message: "Route not found." }),
 );
+
+// Global error handler
 app.use(errorHandler);
