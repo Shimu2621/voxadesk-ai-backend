@@ -26,6 +26,8 @@ import { requestMetrics } from "./middleware/request-metrics.js";
 
 // Create the Express application
 export const app = express();
+
+// Global middleware
 app.disable("x-powered-by");
 app.use(requestContext);
 app.use(requestMetrics);
