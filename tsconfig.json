@@ -8,9 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node"],
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    "types": ["node"]
   },
   "include": ["src", "prisma", "tests"]
 }
