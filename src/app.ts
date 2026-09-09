@@ -51,7 +51,7 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
-// Health-check routes
+// Health-check and health live routes
 app.get("/health", (_req, res) =>
   res.json({ status: "ok", service: "voxadesk-ai-backend" }),
 );
