@@ -1,5 +1,6 @@
 import argon2 from "argon2";
 import { PrismaClient } from "@prisma/client";
+import { createHash } from "node:crypto";
 
 const prisma = new PrismaClient();
 const ids = {
@@ -16,7 +17,26 @@ const ids = {
   message: "seed_message_demo",
   usage: "seed_usage_demo",
   subscription: "seed_subscription_starter",
+  managerUser: "cm00000000000000000000001",
+  operatorUser: "cm00000000000000000000002",
+  viewerUser: "cm00000000000000000000003",
+  managerMembership: "cm00000000000000000000004",
+  operatorMembership: "cm00000000000000000000005",
+  viewerMembership: "cm00000000000000000000006",
+  phase2Agent: "cm00000000000000000000007",
+  phase2AgentVersion1: "cm00000000000000000000008",
+  phase2AgentVersion2: "cm00000000000000000000009",
+  pendingInvitation: "cm00000000000000000000010",
 } as const;
+
+const phase2ConversationIds = Array.from(
+  { length: 12 },
+  (_, index) => `cm000000000000000000000${String(index + 11).padStart(2, "0")}`,
+);
+const phase2InboxTaskIds = Array.from(
+  { length: 12 },
+  (_, index) => `cm000000000000000000000${String(index + 23).padStart(2, "0")}`,
+);
 
 async function main() {
   const passwordHash = await argon2.hash("DemoPassphrase!2026");
@@ -76,6 +96,61 @@ async function main() {
       role: "OWNER",
     },
   });
+  const roleFixtures = [
+    {
+      userId: ids.managerUser,
+      membershipId: ids.managerMembership,
+      email: "manager@brightpath.example",
+      name: "Morgan Manager",
+      role: "MANAGER" as const,
+    },
+    {
+      userId: ids.operatorUser,
+      membershipId: ids.operatorMembership,
+      email: "operator@brightpath.example",
+      name: "Owen Operator",
+      role: "OPERATOR" as const,
+    },
+    {
+      userId: ids.viewerUser,
+      membershipId: ids.viewerMembership,
+      email: "viewer@brightpath.example",
+      name: "Val Viewer",
+      role: "VIEWER" as const,
+    },
+  ];
+  for (const fixture of roleFixtures) {
+    const user = await prisma.user.upsert({
+      where: { email: fixture.email },
+      update: {
+        name: fixture.name,
+        passwordHash,
+        verifiedAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+      create: {
+        id: fixture.userId,
+        email: fixture.email,
+        name: fixture.name,
+        passwordHash,
+        verifiedAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+    });
+    await prisma.membership.upsert({
+      where: {
+        organizationId_userId: {
+          organizationId: ids.organization,
+          userId: user.id,
+        },
+      },
+      update: { role: fixture.role },
+      create: {
+        id: fixture.membershipId,
+        organizationId: ids.organization,
+        userId: user.id,
+        role: fixture.role,
+      },
+    });
+  }
   await prisma.location.upsert({
     where: { id: ids.location },
     update: {},
@@ -178,6 +253,65 @@ async function main() {
     where: { id: ids.agent },
     data: { status: "PUBLISHED", activeVersionId: ids.version },
   });
+  const phase2Version1Config = {
+    ...agentConfig,
+    name: "Phase 2 Workflow Agent",
+    greeting: "Welcome to BrightPath. How may I help you today?",
+    providerAgentId: "mock-agent-phase2-v1",
+  };
+  const phase2Version2Config = {
+    ...phase2Version1Config,
+    greeting: "Thanks for calling BrightPath. What can I help you with?",
+    providerAgentId: "mock-agent-phase2-v2",
+  };
+  await prisma.agent.upsert({
+    where: { id: ids.phase2Agent },
+    update: {
+      name: phase2Version2Config.name,
+      draftConfig: phase2Version2Config,
+    },
+    create: {
+      id: ids.phase2Agent,
+      organizationId: ids.organization,
+      name: phase2Version2Config.name,
+      draftConfig: phase2Version2Config,
+    },
+  });
+  await prisma.agentVersion.upsert({
+    where: {
+      agentId_version: { agentId: ids.phase2Agent, version: 1 },
+    },
+    update: { config: phase2Version1Config },
+    create: {
+      id: ids.phase2AgentVersion1,
+      agentId: ids.phase2Agent,
+      version: 1,
+      config: phase2Version1Config,
+      publishedById: ids.user,
+      publishedAt: new Date("2026-01-02T14:00:00.000Z"),
+    },
+  });
+  await prisma.agentVersion.upsert({
+    where: {
+      agentId_version: { agentId: ids.phase2Agent, version: 2 },
+    },
+    update: { config: phase2Version2Config },
+    create: {
+      id: ids.phase2AgentVersion2,
+      agentId: ids.phase2Agent,
+      version: 2,
+      config: phase2Version2Config,
+      publishedById: ids.user,
+      publishedAt: new Date("2026-01-03T14:00:00.000Z"),
+    },
+  });
+  await prisma.agent.update({
+    where: { id: ids.phase2Agent },
+    data: {
+      status: "PUBLISHED",
+      activeVersionId: ids.phase2AgentVersion2,
+    },
+  });
   await prisma.contact.upsert({
     where: { id: ids.contact },
     update: {},
@@ -249,6 +383,71 @@ async function main() {
       unitCost: 0.02,
       occurredAt: new Date("2026-01-02T15:00:00.000Z"),
       idempotencyKey: "seed-call-1-duration",
+    },
+  });
+  for (const [index, conversationId] of phase2ConversationIds.entries()) {
+    const sequence = index + 2;
+    const conversation = await prisma.conversation.upsert({
+      where: {
+        provider_providerConversationId: {
+          provider: "seed",
+          providerConversationId: `seed-call-${sequence}`,
+        },
+      },
+      update: {},
+      create: {
+        id: conversationId,
+        organizationId: ids.organization,
+        agentId: ids.phase2Agent,
+        agentVersionId:
+          index < 6 ? ids.phase2AgentVersion1 : ids.phase2AgentVersion2,
+        contactId: ids.contact,
+        provider: "seed",
+        providerConversationId: `seed-call-${sequence}`,
+        channel: index % 2 === 0 ? "PHONE" : "WEB_TEXT",
+        status: "COMPLETED",
+        outcome: index % 3 === 0 ? "appointment_requested" : "faq_resolved",
+        summary: `Seeded Phase 2 conversation ${sequence}.`,
+        durationSeconds: 40 + index * 5,
+        estimatedCost: 0.02,
+        isTest: true,
+        createdAt: new Date(Date.UTC(2026, 0, 4 + index, 15, 0, 0)),
+      },
+    });
+    await prisma.inboxTask.upsert({
+      where: { id: phase2InboxTaskIds[index] },
+      update: {},
+      create: {
+        id: phase2InboxTaskIds[index],
+        organizationId: ids.organization,
+        conversationId: conversation.id,
+        contactId: ids.contact,
+        type: index % 2 === 0 ? "CALLBACK_REQUEST" : "FOLLOW_UP",
+        priority: index % 3 === 0 ? "HIGH" : "NORMAL",
+        status: index === 0 ? "RESOLVED" : "OPEN",
+        assignedToId: index % 2 === 0 ? ids.operatorUser : null,
+        dueAt: new Date(Date.UTC(2026, 1, 1 + index, 14, 0, 0)),
+        createdAt: new Date(Date.UTC(2026, 0, 4 + index, 15, 5, 0)),
+      },
+    });
+  }
+  await prisma.invitation.upsert({
+    where: { id: ids.pendingInvitation },
+    update: {
+      acceptedAt: null,
+      revokedAt: null,
+      expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+    },
+    create: {
+      id: ids.pendingInvitation,
+      organizationId: ids.organization,
+      email: "pending.invitee@brightpath.example",
+      role: "VIEWER",
+      tokenHash: createHash("sha256")
+        .update("phase-2-demo-invitation-not-for-production")
+        .digest("hex"),
+      invitedById: ids.user,
+      expiresAt: new Date("2099-01-01T00:00:00.000Z"),
     },
   });
   await prisma.subscription.upsert({

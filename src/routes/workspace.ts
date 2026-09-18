@@ -146,6 +146,10 @@ const conversationQuery = z.object({
   outcome: z.string().max(50).optional(),
   includeTests: z.coerce.boolean().default(false),
 });
+const inboxQuery = z.object({
+  cursor: cuid.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
 const noteInput = z.object({ body: z.string().trim().min(1).max(4000) });
 const inviteInput = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -349,6 +353,54 @@ workspaceRouter.patch(
       metadata: { from: membership.role, to: role },
     });
     res.json({ data });
+  },
+);
+workspaceRouter.delete(
+  "/members/:id",
+  requireRole("OWNER"),
+  async (req, res) => {
+    const membership = await prisma.membership.findFirst({
+      where: {
+        id: cuid.parse(req.params.id),
+        organizationId: req.auth!.organizationId,
+      },
+    });
+    if (!membership) {
+      res
+        .status(404)
+        .json({ code: "NOT_FOUND", message: "Membership not found." });
+      return;
+    }
+    if (membership.role === "OWNER") {
+      const ownerCount = await prisma.membership.count({
+        where: { organizationId: req.auth!.organizationId, role: "OWNER" },
+      });
+      if (ownerCount <= 1) {
+        res.status(409).json({
+          code: "LAST_OWNER",
+          message: "The last owner cannot be removed.",
+        });
+        return;
+      }
+    }
+    await prisma.$transaction([
+      prisma.session.deleteMany({
+        where: {
+          userId: membership.userId,
+          organizationId: req.auth!.organizationId,
+        },
+      }),
+      prisma.membership.delete({ where: { id: membership.id } }),
+    ]);
+    await audit({
+      organizationId: req.auth!.organizationId,
+      actorId: req.auth!.userId,
+      action: "membership.removed",
+      targetType: "membership",
+      targetId: membership.id,
+      metadata: { userId: membership.userId, role: membership.role },
+    });
+    res.status(204).end();
   },
 );
 workspaceRouter.patch(
@@ -1216,15 +1268,19 @@ workspaceRouter.patch(
     res.json({ data });
   },
 );
-workspaceRouter.get("/inbox", async (req, res) =>
-  res.json({
-    data: await prisma.inboxTask.findMany({
-      where: { organizationId: req.auth!.organizationId },
-      include: { contact: true, conversation: true, notes: true },
-      orderBy: { createdAt: "desc" },
-    }),
-  }),
-);
+workspaceRouter.get("/inbox", async (req, res) => {
+  const query = inboxQuery.parse(req.query);
+  const records = await prisma.inboxTask.findMany({
+    where: { organizationId: req.auth!.organizationId },
+    include: { contact: true, conversation: true, notes: true },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: query.limit + 1,
+    ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+  });
+  const hasMore = records.length > query.limit;
+  const data = records.slice(0, query.limit);
+  res.json({ data, nextCursor: hasMore ? (data.at(-1)?.id ?? null) : null });
+});
 workspaceRouter.patch(
   "/inbox/:id",
   requireRole("OWNER", "MANAGER", "OPERATOR"),
