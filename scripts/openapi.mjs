@@ -276,8 +276,8 @@ const operationCount = Object.values(paths).reduce(
   (count, item) => count + Object.keys(item).length,
   0,
 );
-if (operationCount !== 88)
-  throw new Error(`Expected 88 operations, found ${operationCount}.`);
+if (operationCount !== 89)
+  throw new Error(`Expected 89 operations, found ${operationCount}.`);
 for (const [path, pathItem] of Object.entries(paths)) {
   for (const [method, operation] of Object.entries(pathItem)) {
     const requestSchema = operation.requestBody?.content

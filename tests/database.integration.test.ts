@@ -308,4 +308,53 @@ run("database-backed tenant isolation", () => {
       }),
     ).toBe(1);
   });
+
+  it("paginates inbox tasks within the active tenant", async () => {
+    await prisma.inboxTask.createMany({
+      data: [
+        { organizationId: orgA, type: "callback", priority: "normal" },
+        { organizationId: orgA, type: "lead", priority: "high" },
+        { organizationId: orgA, type: "review", priority: "low" },
+        { organizationId: orgB, type: "foreign", priority: "high" },
+      ],
+    });
+    const first = await ownerA.get("/api/v1/inbox?limit=2").expect(200);
+    expect(first.body.data).toHaveLength(2);
+    expect(first.body.nextCursor).toBeTruthy();
+    expect(
+      first.body.data.every(
+        (task: { organizationId: string }) => task.organizationId === orgA,
+      ),
+    ).toBe(true);
+    const second = await ownerA
+      .get(`/api/v1/inbox?limit=2&cursor=${first.body.nextCursor}`)
+      .expect(200);
+    expect(second.body.data).toHaveLength(1);
+  });
+
+  it("protects the last owner and supports tenant-scoped member removal", async () => {
+    const ownerMembership = await prisma.membership.findFirstOrThrow({
+      where: { organizationId: orgA, role: "OWNER" },
+    });
+    await ownerA
+      .delete(`/api/v1/members/${ownerMembership.id}`)
+      .set("x-csrf-token", csrfA)
+      .expect(409);
+    const viewerMembership = await prisma.membership.findFirstOrThrow({
+      where: { organizationId: orgA, role: "VIEWER" },
+    });
+    await ownerB
+      .delete(`/api/v1/members/${viewerMembership.id}`)
+      .set("x-csrf-token", csrfB)
+      .expect(404);
+    await ownerA
+      .delete(`/api/v1/members/${viewerMembership.id}`)
+      .set("x-csrf-token", csrfA)
+      .expect(204);
+    expect(
+      await prisma.membership.findUnique({
+        where: { id: viewerMembership.id },
+      }),
+    ).toBeNull();
+  });
 });

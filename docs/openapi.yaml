@@ -3068,7 +3068,7 @@
         }
       },
       "patch": {
-        "operationId": "plan2_patch__api_v1_organization_31",
+        "operationId": "plan2_patch__api_v1_organization_32",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -3652,11 +3652,126 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "plan2_delete__api_v1_members_id__31",
+        "x-permissions": "OWNER,OWNER",
+        "security": [
+          {
+            "sessionAuth": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteApiV1MembersByIdResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteApiV1MembersByIdResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteApiV1MembersByIdResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/locations": {
       "post": {
-        "operationId": "plan2_post__api_v1_locations_32",
+        "operationId": "plan2_post__api_v1_locations_33",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -3774,7 +3889,7 @@
     },
     "/api/v1/locations/{id}": {
       "patch": {
-        "operationId": "plan2_patch__api_v1_locations_id__33",
+        "operationId": "plan2_patch__api_v1_locations_id__34",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -3901,7 +4016,7 @@
     },
     "/api/v1/locations/{id}/business-status": {
       "get": {
-        "operationId": "plan2_get__api_v1_locations_id_business_status_34",
+        "operationId": "plan2_get__api_v1_locations_id_business_status_35",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -4018,7 +4133,7 @@
     },
     "/api/v1/services": {
       "get": {
-        "operationId": "plan2_get__api_v1_services_35",
+        "operationId": "plan2_get__api_v1_services_36",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -4124,7 +4239,7 @@
         }
       },
       "post": {
-        "operationId": "plan2_post__api_v1_services_36",
+        "operationId": "plan2_post__api_v1_services_37",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -4242,7 +4357,7 @@
     },
     "/api/v1/services/{id}": {
       "patch": {
-        "operationId": "plan2_patch__api_v1_services_id__37",
+        "operationId": "plan2_patch__api_v1_services_id__38",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -4367,7 +4482,7 @@
         }
       },
       "delete": {
-        "operationId": "plan2_delete__api_v1_services_id__38",
+        "operationId": "plan2_delete__api_v1_services_id__39",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -4484,7 +4599,7 @@
     },
     "/api/v1/faqs": {
       "get": {
-        "operationId": "plan2_get__api_v1_faqs_39",
+        "operationId": "plan2_get__api_v1_faqs_40",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -4590,7 +4705,7 @@
         }
       },
       "post": {
-        "operationId": "plan2_post__api_v1_faqs_40",
+        "operationId": "plan2_post__api_v1_faqs_41",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -4708,7 +4823,7 @@
     },
     "/api/v1/faqs/{id}": {
       "patch": {
-        "operationId": "plan2_patch__api_v1_faqs_id__41",
+        "operationId": "plan2_patch__api_v1_faqs_id__42",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -4833,7 +4948,7 @@
         }
       },
       "delete": {
-        "operationId": "plan2_delete__api_v1_faqs_id__42",
+        "operationId": "plan2_delete__api_v1_faqs_id__43",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -4950,7 +5065,7 @@
     },
     "/api/v1/knowledge": {
       "get": {
-        "operationId": "plan2_get__api_v1_knowledge_43",
+        "operationId": "plan2_get__api_v1_knowledge_44",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -5056,7 +5171,7 @@
         }
       },
       "post": {
-        "operationId": "plan2_post__api_v1_knowledge_44",
+        "operationId": "plan2_post__api_v1_knowledge_45",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -5174,7 +5289,7 @@
     },
     "/api/v1/knowledge/{id}/sync": {
       "post": {
-        "operationId": "plan2_post__api_v1_knowledge_id_sync_45",
+        "operationId": "plan2_post__api_v1_knowledge_id_sync_46",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -5301,7 +5416,7 @@
     },
     "/api/v1/knowledge/{id}/archive": {
       "post": {
-        "operationId": "plan2_post__api_v1_knowledge_id_archive_46",
+        "operationId": "plan2_post__api_v1_knowledge_id_archive_47",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -5428,7 +5543,7 @@
     },
     "/api/v1/knowledge/{id}": {
       "delete": {
-        "operationId": "plan2_delete__api_v1_knowledge_id__47",
+        "operationId": "plan2_delete__api_v1_knowledge_id__48",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -5545,7 +5660,7 @@
     },
     "/api/v1/knowledge/{id}/attach": {
       "post": {
-        "operationId": "plan2_post__api_v1_knowledge_id_attach_48",
+        "operationId": "plan2_post__api_v1_knowledge_id_attach_49",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -5672,7 +5787,7 @@
     },
     "/api/v1/conversations": {
       "get": {
-        "operationId": "plan2_get__api_v1_conversations_49",
+        "operationId": "plan2_get__api_v1_conversations_50",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -5787,7 +5902,7 @@
     },
     "/api/v1/conversations/{id}": {
       "get": {
-        "operationId": "plan2_get__api_v1_conversations_id__50",
+        "operationId": "plan2_get__api_v1_conversations_id__51",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -5904,7 +6019,7 @@
     },
     "/api/v1/conversations/{id}/feedback": {
       "post": {
-        "operationId": "plan2_post__api_v1_conversations_id_feedback_51",
+        "operationId": "plan2_post__api_v1_conversations_id_feedback_52",
         "x-permissions": "OWNER,MANAGER,OPERATOR",
         "security": [
           {
@@ -6031,7 +6146,7 @@
     },
     "/api/v1/conversations/{id}/notes": {
       "post": {
-        "operationId": "plan2_post__api_v1_conversations_id_notes_52",
+        "operationId": "plan2_post__api_v1_conversations_id_notes_53",
         "x-permissions": "OWNER,MANAGER,OPERATOR",
         "security": [
           {
@@ -6158,7 +6273,7 @@
     },
     "/api/v1/contacts": {
       "get": {
-        "operationId": "plan2_get__api_v1_contacts_53",
+        "operationId": "plan2_get__api_v1_contacts_54",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -6271,7 +6386,7 @@
         }
       },
       "post": {
-        "operationId": "plan2_post__api_v1_contacts_54",
+        "operationId": "plan2_post__api_v1_contacts_55",
         "x-permissions": "OWNER,MANAGER,OPERATOR",
         "security": [
           {
@@ -6396,7 +6511,7 @@
     },
     "/api/v1/contacts/{id}/merge": {
       "post": {
-        "operationId": "plan2_post__api_v1_contacts_id_merge_55",
+        "operationId": "plan2_post__api_v1_contacts_id_merge_56",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -6523,7 +6638,7 @@
     },
     "/api/v1/appointments": {
       "get": {
-        "operationId": "plan2_get__api_v1_appointments_56",
+        "operationId": "plan2_get__api_v1_appointments_57",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -6631,7 +6746,7 @@
     },
     "/api/v1/appointments/{id}": {
       "patch": {
-        "operationId": "plan2_patch__api_v1_appointments_id__57",
+        "operationId": "plan2_patch__api_v1_appointments_id__58",
         "x-permissions": "OWNER,MANAGER,OPERATOR",
         "security": [
           {
@@ -6758,7 +6873,7 @@
     },
     "/api/v1/inbox": {
       "get": {
-        "operationId": "plan2_get__api_v1_inbox_58",
+        "operationId": "plan2_get__api_v1_inbox_59",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -6866,7 +6981,7 @@
     },
     "/api/v1/inbox/{id}": {
       "patch": {
-        "operationId": "plan2_patch__api_v1_inbox_id__59",
+        "operationId": "plan2_patch__api_v1_inbox_id__60",
         "x-permissions": "OWNER,MANAGER,OPERATOR",
         "security": [
           {
@@ -6993,7 +7108,7 @@
     },
     "/api/v1/inbox/{id}/notes": {
       "post": {
-        "operationId": "plan2_post__api_v1_inbox_id_notes_60",
+        "operationId": "plan2_post__api_v1_inbox_id_notes_61",
         "x-permissions": "OWNER,MANAGER,OPERATOR",
         "security": [
           {
@@ -7120,7 +7235,7 @@
     },
     "/api/v1/audit": {
       "get": {
-        "operationId": "plan2_get__api_v1_audit_61",
+        "operationId": "plan2_get__api_v1_audit_62",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -7235,7 +7350,7 @@
     },
     "/api/v1/billing": {
       "get": {
-        "operationId": "plan2_get__api_v1_billing_62",
+        "operationId": "plan2_get__api_v1_billing_63",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -7343,7 +7458,7 @@
     },
     "/api/v1/billing/checkout": {
       "post": {
-        "operationId": "plan2_post__api_v1_billing_checkout_63",
+        "operationId": "plan2_post__api_v1_billing_checkout_64",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -7461,7 +7576,7 @@
     },
     "/api/v1/billing/portal": {
       "post": {
-        "operationId": "plan2_post__api_v1_billing_portal_64",
+        "operationId": "plan2_post__api_v1_billing_portal_65",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -7579,7 +7694,7 @@
     },
     "/api/v1/analytics": {
       "get": {
-        "operationId": "plan2_get__api_v1_analytics_65",
+        "operationId": "plan2_get__api_v1_analytics_66",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -7687,7 +7802,7 @@
     },
     "/api/v1/integrations": {
       "get": {
-        "operationId": "plan2_get__api_v1_integrations_66",
+        "operationId": "plan2_get__api_v1_integrations_67",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -7795,7 +7910,7 @@
     },
     "/api/v1/integrations/mock/{type}": {
       "post": {
-        "operationId": "plan2_post__api_v1_integrations_mock_type__67",
+        "operationId": "plan2_post__api_v1_integrations_mock_type__68",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -7922,7 +8037,7 @@
     },
     "/api/v1/integrations/live/{type}": {
       "post": {
-        "operationId": "plan2_post__api_v1_integrations_live_type__68",
+        "operationId": "plan2_post__api_v1_integrations_live_type__69",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -8049,7 +8164,7 @@
     },
     "/api/v1/integrations/{type}": {
       "delete": {
-        "operationId": "plan2_delete__api_v1_integrations_type__69",
+        "operationId": "plan2_delete__api_v1_integrations_type__70",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -8166,7 +8281,7 @@
     },
     "/api/v1/integrations/{type}/credentials": {
       "post": {
-        "operationId": "plan2_post__api_v1_integrations_type_credentials_70",
+        "operationId": "plan2_post__api_v1_integrations_type_credentials_71",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -8293,7 +8408,7 @@
     },
     "/api/v1/integrations/{type}/credentials/rotate": {
       "post": {
-        "operationId": "plan2_post__api_v1_integrations_type_credentials_rotate_71",
+        "operationId": "plan2_post__api_v1_integrations_type_credentials_rotate_72",
         "x-permissions": "OWNER",
         "security": [
           {
@@ -8420,7 +8535,7 @@
     },
     "/api/v1/integrations/phone-numbers": {
       "get": {
-        "operationId": "plan2_get__api_v1_integrations_phone_numbers_72",
+        "operationId": "plan2_get__api_v1_integrations_phone_numbers_73",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -8526,7 +8641,7 @@
         }
       },
       "post": {
-        "operationId": "plan2_post__api_v1_integrations_phone_numbers_73",
+        "operationId": "plan2_post__api_v1_integrations_phone_numbers_74",
         "x-permissions": "OWNER,MANAGER",
         "security": [
           {
@@ -8644,7 +8759,7 @@
     },
     "/telephony/inbound": {
       "post": {
-        "operationId": "plan2_post__telephony_inbound_74",
+        "operationId": "plan2_post__telephony_inbound_75",
         "x-permissions": "provider-signature",
         "security": [],
         "parameters": [],
@@ -8757,7 +8872,7 @@
     },
     "/api/v1/operations/health": {
       "get": {
-        "operationId": "plan2_get__api_v1_operations_health_75",
+        "operationId": "plan2_get__api_v1_operations_health_76",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -8865,7 +8980,7 @@
     },
     "/api/v1/operations/metrics": {
       "get": {
-        "operationId": "plan2_get__api_v1_operations_metrics_76",
+        "operationId": "plan2_get__api_v1_operations_metrics_77",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -8973,7 +9088,7 @@
     },
     "/api/v1/operations/job-attempts": {
       "get": {
-        "operationId": "plan2_get__api_v1_operations_job_attempts_77",
+        "operationId": "plan2_get__api_v1_operations_job_attempts_78",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -9088,7 +9203,7 @@
     },
     "/api/v1/operations/webhook-deliveries": {
       "get": {
-        "operationId": "plan2_get__api_v1_operations_webhook_deliveries_78",
+        "operationId": "plan2_get__api_v1_operations_webhook_deliveries_79",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -9203,7 +9318,7 @@
     },
     "/api/v1/operations/calendar-reconciliations": {
       "get": {
-        "operationId": "plan2_get__api_v1_operations_calendar_reconciliations_79",
+        "operationId": "plan2_get__api_v1_operations_calendar_reconciliations_80",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -9318,7 +9433,7 @@
     },
     "/api/v1/operations/outbound-webhooks": {
       "get": {
-        "operationId": "plan2_get__api_v1_operations_outbound_webhooks_80",
+        "operationId": "plan2_get__api_v1_operations_outbound_webhooks_81",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -9424,7 +9539,7 @@
         }
       },
       "post": {
-        "operationId": "plan2_post__api_v1_operations_outbound_webhooks_81",
+        "operationId": "plan2_post__api_v1_operations_outbound_webhooks_82",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -9542,7 +9657,7 @@
     },
     "/api/v1/operations/outbound-webhooks/{id}": {
       "delete": {
-        "operationId": "plan2_delete__api_v1_operations_outbound_webhooks_id__82",
+        "operationId": "plan2_delete__api_v1_operations_outbound_webhooks_id__83",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -9659,7 +9774,7 @@
     },
     "/api/v1/operations/webhook-deliveries/{id}/replay": {
       "post": {
-        "operationId": "plan2_post__api_v1_operations_webhook_deliveries_id_replay_83",
+        "operationId": "plan2_post__api_v1_operations_webhook_deliveries_id_replay_84",
         "x-permissions": "authenticated-member",
         "security": [
           {
@@ -9786,7 +9901,7 @@
     },
     "/webhooks/elevenlabs": {
       "post": {
-        "operationId": "plan2_post__webhooks_elevenlabs_84",
+        "operationId": "plan2_post__webhooks_elevenlabs_85",
         "x-permissions": "provider-signature",
         "security": [],
         "parameters": [],
@@ -9899,7 +10014,7 @@
     },
     "/webhooks/twilio": {
       "post": {
-        "operationId": "plan2_post__webhooks_twilio_85",
+        "operationId": "plan2_post__webhooks_twilio_86",
         "x-permissions": "provider-signature",
         "security": [],
         "parameters": [],
@@ -10012,7 +10127,7 @@
     },
     "/webhooks/stripe": {
       "post": {
-        "operationId": "plan2_post__webhooks_stripe_86",
+        "operationId": "plan2_post__webhooks_stripe_87",
         "x-permissions": "provider-signature",
         "security": [],
         "parameters": [],
@@ -10710,6 +10825,12 @@
       "PatchApiV1MembersByIdResponse": {
         "type": "object",
         "title": "PATCH /api/v1/members/{id} response",
+        "description": "Endpoint-specific successful response envelope.",
+        "additionalProperties": true
+      },
+      "DeleteApiV1MembersByIdResponse": {
+        "type": "object",
+        "title": "DELETE /api/v1/members/{id} response",
         "description": "Endpoint-specific successful response envelope.",
         "additionalProperties": true
       },
