@@ -19,6 +19,8 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REFRESH_TOKEN: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().default("primary"),
   CALENDAR_ENCRYPTION_KEY: z.string().optional(),

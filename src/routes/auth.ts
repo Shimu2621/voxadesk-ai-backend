@@ -1,10 +1,11 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { Router, type Response } from "express";
 import argon2 from "argon2";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { audit } from "../lib/audit.js";
 import { emailProvider } from "../integrations/email.js";
+import { env } from "../config/env.js";
 import {
   hashToken,
   csrfCookieName,
@@ -34,6 +35,135 @@ const slugify = (value: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")}-${randomBytes(3).toString("hex")}`;
+
+type OAuthProvider = "google" | "github";
+type OAuthProfile = { email: string; name?: string };
+const oauthCookieName = "voxadesk_oauth";
+const oauthCookieOptions = {
+  ...cookieOptions,
+  maxAge: 10 * 60 * 1000,
+  path: "/api/v1/auth/oauth",
+};
+const oauthConfig = {
+  google: {
+    clientId: () => env.GOOGLE_CLIENT_ID,
+    clientSecret: () => env.GOOGLE_CLIENT_SECRET,
+    authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+  },
+  github: {
+    clientId: () => env.GITHUB_CLIENT_ID,
+    clientSecret: () => env.GITHUB_CLIENT_SECRET,
+    authorizeUrl: "https://github.com/login/oauth/authorize",
+  },
+} as const;
+
+const oauthCallbackUrl = (provider: OAuthProvider) =>
+  `${env.PUBLIC_WEBHOOK_BASE_URL}/api/v1/auth/oauth/${provider}/callback`;
+const oauthErrorRedirect = (res: Response, message: string) =>
+  res.redirect(
+    `${env.FRONTEND_URL}/login?oauth_error=${encodeURIComponent(message)}`,
+  );
+const safeEqual = (left: string, right: string) => {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    timingSafeEqual(leftBuffer, rightBuffer)
+  );
+};
+const codeChallenge = (verifier: string) =>
+  createHash("sha256").update(verifier).digest("base64url");
+
+async function exchangeOAuthCode(
+  provider: OAuthProvider,
+  code: string,
+  verifier: string,
+) {
+  const config = oauthConfig[provider];
+  const clientId = config.clientId();
+  const clientSecret = config.clientSecret();
+  if (!clientId || !clientSecret) throw new Error("OAUTH_NOT_CONFIGURED");
+  const endpoint =
+    provider === "google"
+      ? "https://oauth2.googleapis.com/token"
+      : "https://github.com/login/oauth/access_token";
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    code,
+    redirect_uri: oauthCallbackUrl(provider),
+    code_verifier: verifier,
+    ...(provider === "google" ? { grant_type: "authorization_code" } : {}),
+  });
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body,
+    signal: AbortSignal.timeout(10_000),
+  });
+  const payload = (await response.json()) as {
+    access_token?: string;
+    error?: string;
+  };
+  if (!response.ok || !payload.access_token) throw new Error("OAUTH_EXCHANGE");
+  return payload.access_token;
+}
+
+async function getOAuthProfile(
+  provider: OAuthProvider,
+  accessToken: string,
+): Promise<OAuthProfile> {
+  const headers = {
+    accept: "application/json",
+    authorization: `Bearer ${accessToken}`,
+    "user-agent": "VoxaDesk-AI",
+  };
+  if (provider === "google") {
+    const response = await fetch(
+      "https://openidconnect.googleapis.com/v1/userinfo",
+      {
+        headers,
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    const profile = (await response.json()) as {
+      email?: string;
+      email_verified?: boolean;
+      name?: string;
+    };
+    if (!response.ok || !profile.email || !profile.email_verified)
+      throw new Error("OAUTH_EMAIL");
+    return { email: profile.email.toLowerCase(), name: profile.name };
+  }
+  const [userResponse, emailResponse] = await Promise.all([
+    fetch("https://api.github.com/user", {
+      headers,
+      signal: AbortSignal.timeout(10_000),
+    }),
+    fetch("https://api.github.com/user/emails", {
+      headers,
+      signal: AbortSignal.timeout(10_000),
+    }),
+  ]);
+  const user = (await userResponse.json()) as { name?: string; login?: string };
+  const emails = (await emailResponse.json()) as Array<{
+    email: string;
+    primary: boolean;
+    verified: boolean;
+  }>;
+  const selected =
+    emails.find((email) => email.primary && email.verified) ??
+    emails.find((email) => email.verified);
+  if (!userResponse.ok || !emailResponse.ok || !selected)
+    throw new Error("OAUTH_EMAIL");
+  return {
+    email: selected.email.toLowerCase(),
+    name: user.name ?? user.login,
+  };
+}
 
 async function issueSession(userId: string, organizationId: string) {
   const token = randomBytes(32).toString("base64url");
@@ -78,6 +208,133 @@ async function issueAuthToken(
 }
 
 export const authRouter = Router();
+
+authRouter.get("/oauth/:provider", (req, res) => {
+  const parsedProvider = z
+    .enum(["google", "github"])
+    .safeParse(req.params.provider);
+  if (!parsedProvider.success) {
+    oauthErrorRedirect(res, "Unsupported sign-in provider.");
+    return;
+  }
+  const provider = parsedProvider.data;
+  const config = oauthConfig[provider];
+  const clientId = config.clientId();
+  if (!clientId || !config.clientSecret()) {
+    oauthErrorRedirect(
+      res,
+      `${provider === "google" ? "Google" : "GitHub"} sign-in is not configured yet.`,
+    );
+    return;
+  }
+  const state = randomBytes(24).toString("base64url");
+  const verifier = randomBytes(48).toString("base64url");
+  res.cookie(
+    oauthCookieName,
+    `${provider}.${state}.${verifier}`,
+    oauthCookieOptions,
+  );
+  const query = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: oauthCallbackUrl(provider),
+    response_type: "code",
+    state,
+    code_challenge: codeChallenge(verifier),
+    code_challenge_method: "S256",
+    scope:
+      provider === "google" ? "openid email profile" : "read:user user:email",
+  });
+  res.redirect(`${config.authorizeUrl}?${query.toString()}`);
+});
+
+authRouter.get("/oauth/:provider/callback", async (req, res) => {
+  const parsedProvider = z
+    .enum(["google", "github"])
+    .safeParse(req.params.provider);
+  const code = typeof req.query.code === "string" ? req.query.code : undefined;
+  const state =
+    typeof req.query.state === "string" ? req.query.state : undefined;
+  const stored = req.cookies?.[oauthCookieName] as string | undefined;
+  res.clearCookie(oauthCookieName, { path: oauthCookieOptions.path });
+  if (!parsedProvider.success || !code || !state || !stored) {
+    oauthErrorRedirect(res, "The sign-in request is invalid or expired.");
+    return;
+  }
+  const provider = parsedProvider.data;
+  const [storedProvider, storedState, verifier] = stored.split(".");
+  if (
+    storedProvider !== provider ||
+    !storedState ||
+    !verifier ||
+    !safeEqual(state, storedState)
+  ) {
+    oauthErrorRedirect(res, "The sign-in request could not be verified.");
+    return;
+  }
+  try {
+    const accessToken = await exchangeOAuthCode(provider, code, verifier);
+    const profile = await getOAuthProfile(provider, accessToken);
+    let user = await prisma.user.findUnique({
+      where: { email: profile.email },
+      include: { memberships: true },
+    });
+    let organizationId = user?.memberships[0]?.organizationId;
+    if (!user || !organizationId) {
+      const workspaceName = `${profile.name ?? profile.email.split("@")[0]}'s Workspace`;
+      const created = await prisma.$transaction(async (tx) => {
+        const oauthUser = user
+          ? await tx.user.update({
+              where: { id: user.id },
+              data: {
+                verifiedAt: user.verifiedAt ?? new Date(),
+                name: user.name ?? profile.name,
+              },
+            })
+          : await tx.user.create({
+              data: {
+                email: profile.email,
+                name: profile.name,
+                verifiedAt: new Date(),
+              },
+            });
+        const organization = await tx.organization.create({
+          data: {
+            name: workspaceName,
+            slug: slugify(workspaceName),
+            memberships: { create: { userId: oauthUser.id, role: "OWNER" } },
+          },
+        });
+        return { user: oauthUser, organization };
+      });
+      user = { ...created.user, memberships: [] };
+      organizationId = created.organization.id;
+      await audit({
+        organizationId,
+        actorId: user.id,
+        action: "organization.created",
+        targetType: "organization",
+        targetId: organizationId,
+        metadata: { authenticationProvider: provider },
+      });
+    } else if (!user.verifiedAt) {
+      user = {
+        ...user,
+        ...(await prisma.user.update({
+          where: { id: user.id },
+          data: { verifiedAt: new Date(), name: user.name ?? profile.name },
+        })),
+      };
+    }
+    setSessionCookies(res, await issueSession(user.id, organizationId));
+    res.redirect(`${env.FRONTEND_URL}/app`);
+  } catch {
+    oauthErrorRedirect(
+      res,
+      "Social sign-in could not be completed. Please try again.",
+    );
+  }
+});
+
 authRouter.post("/signup", async (req, res) => {
   const input = signup.parse(req.body);
   if (await prisma.user.findUnique({ where: { email: input.email } })) {

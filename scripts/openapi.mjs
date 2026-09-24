@@ -75,6 +75,22 @@ for (const [file, mount] of Object.entries(mounts)) {
         { $ref: "#/components/parameters/Cursor" },
         { $ref: "#/components/parameters/Limit" },
       );
+    const isOAuthRedirect = path.startsWith("/api/v1/auth/oauth/");
+    if (path.endsWith("/callback"))
+      parameters.push(
+        {
+          name: "code",
+          in: "query",
+          required: true,
+          schema: { type: "string" },
+        },
+        {
+          name: "state",
+          in: "query",
+          required: true,
+          schema: { type: "string" },
+        },
+      );
     const operationId = `plan2_${method}_${path.replace(/[^A-Za-z0-9]+/g, "_")}_${++sequence}`;
     const requestSchemaName = componentName(method, path, "request");
     const responseSchemaName = componentName(method, path, "response");
@@ -129,42 +145,49 @@ for (const [file, mount] of Object.entries(mounts)) {
             },
           }
         : {}),
-      responses: Object.fromEntries(
-        [
-          "200",
-          "201",
-          "202",
-          "204",
-          "400",
-          "401",
-          "403",
-          "404",
-          "409",
-          "429",
-        ].map((status) => [
-          status,
-          {
-            description: status.startsWith("2") ? "Success" : "Error",
-            ...(status.startsWith("2")
-              ? status === "204"
-                ? {}
-                : {
-                    content: {
-                      "application/json": {
-                        schema: schemaRef(responseSchemaName),
+      responses: isOAuthRedirect
+        ? {
+            302: {
+              description:
+                "Redirect to the identity provider or back to the frontend.",
+            },
+          }
+        : Object.fromEntries(
+            [
+              "200",
+              "201",
+              "202",
+              "204",
+              "400",
+              "401",
+              "403",
+              "404",
+              "409",
+              "429",
+            ].map((status) => [
+              status,
+              {
+                description: status.startsWith("2") ? "Success" : "Error",
+                ...(status.startsWith("2")
+                  ? status === "204"
+                    ? {}
+                    : {
+                        content: {
+                          "application/json": {
+                            schema: schemaRef(responseSchemaName),
+                          },
+                        },
+                      }
+                  : {
+                      content: {
+                        "application/json": {
+                          schema: { $ref: "#/components/schemas/Error" },
+                        },
                       },
-                    },
-                  }
-              : {
-                  content: {
-                    "application/json": {
-                      schema: { $ref: "#/components/schemas/Error" },
-                    },
-                  },
-                }),
-          },
-        ]),
-      ),
+                    }),
+              },
+            ]),
+          ),
     };
   }
 }
@@ -276,8 +299,8 @@ const operationCount = Object.values(paths).reduce(
   (count, item) => count + Object.keys(item).length,
   0,
 );
-if (operationCount !== 89)
-  throw new Error(`Expected 89 operations, found ${operationCount}.`);
+if (operationCount !== 91)
+  throw new Error(`Expected 91 operations, found ${operationCount}.`);
 for (const [path, pathItem] of Object.entries(paths)) {
   for (const [method, operation] of Object.entries(pathItem)) {
     const requestSchema = operation.requestBody?.content
