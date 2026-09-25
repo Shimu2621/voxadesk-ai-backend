@@ -36,22 +36,4 @@ if (parsed.PROVIDER_MODE === "mock" && !parsed.MOCK_WEBHOOK_SECRET) {
   throw new Error("MOCK_WEBHOOK_SECRET is required when PROVIDER_MODE=mock.");
 }
 
-if (parsed.PROVIDER_MODE === "live") {
-  const required = [
-    "ELEVENLABS_API_KEY",
-    "ELEVENLABS_WEBHOOK_SECRET",
-    "TWILIO_ACCOUNT_SID",
-    "TWILIO_AUTH_TOKEN",
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
-    "GOOGLE_REFRESH_TOKEN",
-    "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-  ] as const;
-  const missing = required.filter((key) => !parsed[key]);
-  if (missing.length) {
-    throw new Error(`Live provider mode is missing: ${missing.join(", ")}.`);
-  }
-}
-
 export const env = parsed;

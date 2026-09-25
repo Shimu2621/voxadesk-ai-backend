@@ -37,7 +37,7 @@ app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
 
 // Public webhook and telephony routes
 app.use(
-  "/webhooks",
+  ["/webhooks", "/api/v1/webhooks"],
   rateLimit({ name: "webhook", limit: 600, windowSeconds: 60 }),
   webhooksRouter,
 );
