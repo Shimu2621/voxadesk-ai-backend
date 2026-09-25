@@ -75,6 +75,24 @@ for (const [file, mount] of Object.entries(mounts)) {
         { $ref: "#/components/parameters/Cursor" },
         { $ref: "#/components/parameters/Limit" },
       );
+    if (file === "webhooks")
+      parameters.push({
+        name: "integrationId",
+        in: "query",
+        required: false,
+        description:
+          "Required in live provider mode: ID of a connected integration for this provider. Mock mode uses the signed envelope instead.",
+        schema: { type: "string" },
+      });
+    if (path === "/webhooks/stripe")
+      parameters.push({
+        name: "stripe-signature",
+        in: "header",
+        required: false,
+        description:
+          "Required in live provider mode. Verified against STRIPE_WEBHOOK_SECRET using the unmodified body.",
+        schema: { type: "string" },
+      });
     const isOAuthRedirect = path.startsWith("/api/v1/auth/oauth/");
     if (path.endsWith("/callback"))
       parameters.push(
@@ -191,6 +209,18 @@ for (const [file, mount] of Object.entries(mounts)) {
     };
   }
 }
+for (const [path, item] of Object.entries(paths)) {
+  if (!path.startsWith("/webhooks/")) continue;
+  paths[`/api/v1${path}`] = Object.fromEntries(
+    Object.entries(item).map(([method, operation]) => [
+      method,
+      {
+        ...operation,
+        operationId: `${operation.operationId}_api_v1`,
+      },
+    ]),
+  );
+}
 paths["/health/live"] = {
   get: {
     operationId: "health_live",
@@ -299,8 +329,8 @@ const operationCount = Object.values(paths).reduce(
   (count, item) => count + Object.keys(item).length,
   0,
 );
-if (operationCount !== 91)
-  throw new Error(`Expected 91 operations, found ${operationCount}.`);
+if (operationCount !== 94)
+  throw new Error(`Expected 94 operations, found ${operationCount}.`);
 for (const [path, pathItem] of Object.entries(paths)) {
   for (const [method, operation] of Object.entries(pathItem)) {
     const requestSchema = operation.requestBody?.content

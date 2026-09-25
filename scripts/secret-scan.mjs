@@ -25,6 +25,8 @@ const findings = [];
 function walk(directory) {
   for (const name of readdirSync(directory)) {
     if (ignored.has(name)) continue;
+    // Local environment files contain intentional secrets and are never scanned.
+    if (name.startsWith(".env") && name !== ".env.example") continue;
     const path = join(directory, name);
     const stat = statSync(path);
     if (stat.isDirectory()) walk(path);

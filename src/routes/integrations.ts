@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { env } from "../config/env.js";
+import { isProviderConfigured } from "../config/providers.js";
 import { audit } from "../lib/audit.js";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
@@ -21,16 +22,7 @@ const mockConfigSchema = z.object({
   label: z.string().min(1).max(100).optional(),
 });
 const liveConfigured = (type: z.infer<typeof typeSchema>) =>
-  ({
-    ELEVENLABS: Boolean(env.ELEVENLABS_API_KEY),
-    TWILIO: Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN),
-    GOOGLE_CALENDAR: Boolean(
-      env.GOOGLE_CLIENT_ID &&
-      env.GOOGLE_CLIENT_SECRET &&
-      env.GOOGLE_REFRESH_TOKEN,
-    ),
-    STRIPE: Boolean(env.STRIPE_SECRET_KEY),
-  })[type];
+  isProviderConfigured(type, env);
 const phoneSchema = z.object({
   e164: z.string().regex(/^\+[1-9]\d{7,14}$/),
   providerNumberId: z.string().min(1).max(200),

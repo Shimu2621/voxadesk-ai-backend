@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { isProviderConfigured } from "../config/providers.js";
 import {
   ElevenLabsVoiceProvider,
   GoogleCalendarProvider,
@@ -38,20 +39,28 @@ export const providers: {
       }
     : env.PROVIDER_MODE === "live"
       ? {
-          voice: new ElevenLabsVoiceProvider(env.ELEVENLABS_API_KEY!),
-          telephony: new TwilioTelephonyProvider(
-            env.TWILIO_ACCOUNT_SID!,
-            env.TWILIO_AUTH_TOKEN!,
-          ),
-          calendar: new GoogleCalendarProvider({
-            clientId: env.GOOGLE_CLIENT_ID!,
-            clientSecret: env.GOOGLE_CLIENT_SECRET!,
-            refreshToken: env.GOOGLE_REFRESH_TOKEN!,
-          }),
-          billing: new StripeBillingProvider(env.STRIPE_SECRET_KEY!, {
-            growth: env.STRIPE_GROWTH_PRICE_ID,
-            agency: env.STRIPE_AGENCY_PRICE_ID,
-          }),
+          voice: isProviderConfigured("ELEVENLABS", env)
+            ? new ElevenLabsVoiceProvider(env.ELEVENLABS_API_KEY!)
+            : unavailable<VoiceProvider>("ElevenLabs"),
+          telephony: isProviderConfigured("TWILIO", env)
+            ? new TwilioTelephonyProvider(
+                env.TWILIO_ACCOUNT_SID!,
+                env.TWILIO_AUTH_TOKEN!,
+              )
+            : unavailable<TelephonyProvider>("Twilio"),
+          calendar: isProviderConfigured("GOOGLE_CALENDAR", env)
+            ? new GoogleCalendarProvider({
+                clientId: env.GOOGLE_CLIENT_ID!,
+                clientSecret: env.GOOGLE_CLIENT_SECRET!,
+                refreshToken: env.GOOGLE_REFRESH_TOKEN!,
+              })
+            : unavailable<CalendarProvider>("Google Calendar"),
+          billing: isProviderConfigured("STRIPE", env)
+            ? new StripeBillingProvider(env.STRIPE_SECRET_KEY!, {
+                growth: env.STRIPE_GROWTH_PRICE_ID,
+                agency: env.STRIPE_AGENCY_PRICE_ID,
+              })
+            : unavailable<BillingProvider>("Stripe"),
         }
       : {
           voice: unavailable<VoiceProvider>("Voice provider"),
