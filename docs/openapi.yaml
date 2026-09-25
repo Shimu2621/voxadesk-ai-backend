@@ -9964,7 +9964,17 @@
         "operationId": "plan2_post__webhooks_elevenlabs_87",
         "x-permissions": "provider-signature",
         "security": [],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "integrationId",
+            "in": "query",
+            "required": false,
+            "description": "Required in live provider mode: ID of a connected integration for this provider. Mock mode uses the signed envelope instead.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -10077,7 +10087,17 @@
         "operationId": "plan2_post__webhooks_twilio_88",
         "x-permissions": "provider-signature",
         "security": [],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "integrationId",
+            "in": "query",
+            "required": false,
+            "description": "Required in live provider mode: ID of a connected integration for this provider. Mock mode uses the signed envelope instead.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -10190,7 +10210,404 @@
         "operationId": "plan2_post__webhooks_stripe_89",
         "x-permissions": "provider-signature",
         "security": [],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "integrationId",
+            "in": "query",
+            "required": false,
+            "description": "Required in live provider mode: ID of a connected integration for this provider. Mock mode uses the signed envelope instead.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stripe-signature",
+            "in": "header",
+            "required": false,
+            "description": "Required in live provider mode. Verified against STRIPE_WEBHOOK_SECRET using the unmodified body.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/PostWebhooksStripeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksStripeResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksStripeResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksStripeResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/elevenlabs": {
+      "post": {
+        "operationId": "plan2_post__webhooks_elevenlabs_87_api_v1",
+        "x-permissions": "provider-signature",
+        "security": [],
+        "parameters": [
+          {
+            "name": "integrationId",
+            "in": "query",
+            "required": false,
+            "description": "Required in live provider mode: ID of a connected integration for this provider. Mock mode uses the signed envelope instead.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/PostWebhooksElevenlabsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksElevenlabsResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksElevenlabsResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksElevenlabsResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/twilio": {
+      "post": {
+        "operationId": "plan2_post__webhooks_twilio_88_api_v1",
+        "x-permissions": "provider-signature",
+        "security": [],
+        "parameters": [
+          {
+            "name": "integrationId",
+            "in": "query",
+            "required": false,
+            "description": "Required in live provider mode: ID of a connected integration for this provider. Mock mode uses the signed envelope instead.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/PostWebhooksTwilioRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksTwilioResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksTwilioResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostWebhooksTwilioResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/stripe": {
+      "post": {
+        "operationId": "plan2_post__webhooks_stripe_89_api_v1",
+        "x-permissions": "provider-signature",
+        "security": [],
+        "parameters": [
+          {
+            "name": "integrationId",
+            "in": "query",
+            "required": false,
+            "description": "Required in live provider mode: ID of a connected integration for this provider. Mock mode uses the signed envelope instead.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stripe-signature",
+            "in": "header",
+            "required": false,
+            "description": "Required in live provider mode. Verified against STRIPE_WEBHOOK_SECRET using the unmodified body.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {

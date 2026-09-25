@@ -3,6 +3,7 @@ import { Prisma, type IntegrationType } from "@prisma/client";
 import Stripe from "stripe";
 import { z } from "zod";
 import { env } from "../config/env.js";
+import { isProviderConfigured } from "../config/providers.js";
 import {
   normalizeElevenLabsWebhook,
   normalizeStripeWebhook,
@@ -19,6 +20,7 @@ import {
   webhookEnvelopeSchema,
 } from "../security/webhooks.js";
 import { incrementMetric } from "../lib/metrics.js";
+import { logger } from "../lib/logger.js";
 
 export const webhooksRouter = Router();
 const integrationQuerySchema = z.object({ integrationId: z.string().cuid() });
@@ -99,7 +101,7 @@ function getRawBody(req: import("express").Request) {
 
 function providerWebhook(
   provider: "elevenlabs" | "twilio" | "stripe",
-  integrationType: IntegrationType,
+  integrationType: "ELEVENLABS" | "TWILIO" | "STRIPE",
   limit: string,
 ) {
   return [
@@ -115,6 +117,21 @@ function providerWebhook(
           return;
         }
         const body = getRawBody(req);
+        if (
+          env.PROVIDER_MODE === "live" &&
+          !isProviderConfigured(integrationType, env)
+        ) {
+          logger.warn(
+            { provider, category: "provider_not_configured" },
+            "Webhook rejected",
+          );
+          res.status(503).json({
+            code: "PROVIDER_NOT_CONFIGURED",
+            message: `${provider} is not configured.`,
+            requestId: req.requestId,
+          });
+          return;
+        }
         let integrationId: string;
         let event: NormalizedProviderEvent;
         if (env.PROVIDER_MODE === "mock") {
@@ -143,7 +160,11 @@ function providerWebhook(
             data: envelope.data,
           };
         } else {
-          integrationId = integrationQuerySchema.parse(req.query).integrationId;
+          if (provider !== "stripe")
+            integrationId = integrationQuerySchema.parse(
+              req.query,
+            ).integrationId;
+          else integrationId = "";
           if (provider === "elevenlabs") {
             const verification = verifyTimestampedHmac({
               rawBody: body,
@@ -194,14 +215,16 @@ function providerWebhook(
               return;
             }
           } else {
-            const stripe = new Stripe(env.STRIPE_SECRET_KEY!);
-            const stripeEvent = stripe.webhooks.constructEvent(
+            const stripeEvent = Stripe.webhooks.constructEvent(
               body,
               req.header("stripe-signature") ?? "",
               env.STRIPE_WEBHOOK_SECRET!,
               300,
             );
             event = normalizeStripeWebhook(stripeEvent);
+            integrationId = integrationQuerySchema.parse(
+              req.query,
+            ).integrationId;
           }
         }
         const result = await acceptEvent({
@@ -219,6 +242,18 @@ function providerWebhook(
           error instanceof z.ZodError ||
           error instanceof Stripe.errors.StripeSignatureVerificationError
         ) {
+          logger.warn(
+            {
+              provider,
+              category:
+                error instanceof Stripe.errors.StripeSignatureVerificationError
+                  ? "signature_invalid"
+                  : error instanceof z.ZodError
+                    ? "webhook_validation_failed"
+                    : "body_invalid",
+            },
+            "Webhook rejected",
+          );
           res.status(400).json({
             code: "INVALID_WEBHOOK",
             message: "The webhook body or signature is invalid.",
